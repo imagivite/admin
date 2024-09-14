@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Page</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        .container {
+            width: 90%;
+            max-width: 900px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            text-align: center;
+            position: relative; /* Added for spinner positioning */
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            display: block;
+            margin: 0 auto 20px auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        button:focus {
+            outline: none;
+        }
+        .upload-button {
+            background-color: #007bff;
+            color: #fff;
+        }
+        .delete-button {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .gallery img {
+            width: 150px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s;
+        }
+        .gallery img:hover {
+            transform: scale(1.05);
+        }
+        /* Overlay for background dimming */
+        .overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999; /* Make sure it's on top */
+        }
+        /* Spinner styles */
+        .spinner {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000; /* Make sure it's on top */
+        }
+        .spinner .dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin: 0 6px;
+            border-radius: 50%;
+            background-color: #007bff;
+            animation: dot-blink 1.5s infinite ease-in-out;
+        }
+        .spinner .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .spinner .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes dot-blink {
+            0%, 20%, 80%, 100% {
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+    </style>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/9.1.2/firebase-storage.js';
+        import { getDatabase, ref as dbRef, set, get, remove } from 'https://www.gstatic.com/firebasejs/9.1.2/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDkIC_zzwCd_A36mr6CuWYIV6e2Nj0_78",
+            authDomain: "temple-92c10.firebaseapp.com",
+            projectId: "temple-92c10",
+            storageBucket: "temple-92c10.appspot.com",
+            messagingSenderId: "897264749452",
+            appId: "1:897264749452:web:c68f0e305d9b73def164a9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const storage = getStorage(app);
+        const database = getDatabase(app);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('uploadForm');
+            const fileInput = document.getElementById('fileInput');
+            const gallery = document.getElementById('gallery');
+            const deleteButton = document.getElementById('deleteLastImage');
+            const spinner = document.getElementById('spinner');
+            const overlay = document.getElementById('overlay'); // Reference to overlay element
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const files = fileInput.files;
+                if (files.length === 0) {
+                    alert('Please select at least one file.');
+                    return;
+                }
+
+                overlay.style.display = 'block'; // Show overlay
+                spinner.style.display = 'block'; // Show spinner
+
+                try {
+                    for (const file of files) {
+                        const storageRef = ref(storage, `images/${file.name}`);
+                        await uploadBytes(storageRef, file);
+                        const downloadURL = await getDownloadURL(storageRef);
+                        const imageRef = dbRef(database, 'images/' + Date.now());
+                        await set(imageRef, { url: downloadURL });
+                    }
+                    alert('Upload successful!');
+                    loadImages(); // Refresh the gallery
+                } catch (error) {
+                    console.error('Error uploading file:', error);
+                } finally {
+                    spinner.style.display = 'none'; // Hide spinner
+                    overlay.style.display = 'none'; // Hide overlay
+                }
+            });
+
+            async function loadImages() {
+                try {
+                    const imagesRef = dbRef(database, 'images');
+                    const snapshot = await get(imagesRef);
+
+                    if (snapshot.exists()) {
+                        const images = snapshot.val();
+                        gallery.innerHTML = '';
+
+                        for (const key in images) {
+                            const imgUrl = images[key].url;
+                            const img = document.createElement('img');
+                            img.src = imgUrl;
+                            gallery.appendChild(img);
+                        }
+                    } else {
+                        gallery.innerHTML = 'No images found.';
+                    }
+                } catch (error) {
+                    console.error('Error fetching images:', error);
+                }
+            }
+
+            deleteButton.addEventListener('click', async () => {
+                try {
+                    const imagesRef = dbRef(database, 'images');
+                    const snapshot = await get(imagesRef);
+
+                    if (snapshot.exists()) {
+                        const images = snapshot.val();
+                        const lastKey = Object.keys(images).pop();
+                        const lastImageUrl = images[lastKey].url;
+
+                        const imageRef = ref(storage, `images/${lastImageUrl.split('/').pop()}`);
+                        await deleteObject(imageRef);
+
+                        const imageDbRef = dbRef(database, 'images/' + lastKey);
+                        await remove(imageDbRef);
+
+                        alert('Last image deleted successfully!');
+                        loadImages(); // Refresh the gallery
+                    } else {
+                        alert('No images to delete.');
+                    }
+                } catch (error) {
+                    console.error('Error deleting image:', error);
+                }
+            });
+
+            loadImages(); // Load images on page load
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Page</h1>
+        <form id="uploadForm">
+            <input type="file" id="fileInput" accept="image/*" multiple required>
+            <button type="submit" class="upload-button">Upload</button>
+        </form>
+        <button id="deleteLastImage" class="delete-button">Delete Last Image</button>
+        <div id="gallery" class="gallery"></div>
+        <!-- Overlay for dimming the background -->
+        <div id="overlay" class="overlay"></div>
+        <!-- Loading spinner -->
+        <div id="spinner" class="spinner">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+</body>
+</html>
