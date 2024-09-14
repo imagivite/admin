@@ -23,7 +23,7 @@
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
             border-radius: 10px;
             text-align: center;
-            position: relative; /* Added for spinner positioning */
+            position: relative;
         }
         h1 {
             margin-bottom: 20px;
@@ -81,25 +81,23 @@
         .gallery img:hover {
             transform: scale(1.05);
         }
-        /* Overlay for background dimming */
         .overlay {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
-            z-index: 999; /* Make sure it's on top */
+            z-index: 999;
         }
-        /* Spinner styles */
         .spinner {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 1000; /* Make sure it's on top */
+            z-index: 1000;
         }
         .spinner .dot {
             display: inline-block;
@@ -127,7 +125,7 @@
     </style>
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js';
-        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/9.1.2/firebase-storage.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.1.2/firebase-storage.js';
         import { getDatabase, ref as dbRef, set, get, remove } from 'https://www.gstatic.com/firebasejs/9.1.2/firebase-database.js';
 
         const firebaseConfig = {
@@ -149,7 +147,7 @@
             const gallery = document.getElementById('gallery');
             const deleteButton = document.getElementById('deleteLastImage');
             const spinner = document.getElementById('spinner');
-            const overlay = document.getElementById('overlay'); // Reference to overlay element
+            const overlay = document.getElementById('overlay');
 
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
@@ -160,8 +158,8 @@
                     return;
                 }
 
-                overlay.style.display = 'block'; // Show overlay
-                spinner.style.display = 'block'; // Show spinner
+                overlay.style.display = 'block';
+                spinner.style.display = 'block';
 
                 try {
                     for (const file of files) {
@@ -172,12 +170,12 @@
                         await set(imageRef, { url: downloadURL });
                     }
                     alert('Upload successful!');
-                    loadImages(); // Refresh the gallery
+                    loadImages(); 
                 } catch (error) {
                     console.error('Error uploading file:', error);
                 } finally {
-                    spinner.style.display = 'none'; // Hide spinner
-                    overlay.style.display = 'none'; // Hide overlay
+                    spinner.style.display = 'none';
+                    overlay.style.display = 'none';
                 }
             });
 
@@ -212,25 +210,23 @@
                     if (snapshot.exists()) {
                         const images = snapshot.val();
                         const lastKey = Object.keys(images).pop();
-                        const lastImageUrl = images[lastKey].url;
-
-                        const imageRef = ref(storage, `images/${lastImageUrl.split('/').pop()}`);
-                        await deleteObject(imageRef);
-
                         const imageDbRef = dbRef(database, 'images/' + lastKey);
+
+                        // Delete the image entry from Firebase Realtime Database
                         await remove(imageDbRef);
 
-                        alert('Last image deleted successfully!');
+                        alert('Last image entry deleted successfully!');
                         loadImages(); // Refresh the gallery
                     } else {
                         alert('No images to delete.');
                     }
                 } catch (error) {
-                    console.error('Error deleting image:', error);
+                    console.error('Error deleting image entry:', error);
+                    alert('An error occurred while deleting the image entry.');
                 }
             });
 
-            loadImages(); // Load images on page load
+            loadImages();
         });
     </script>
 </head>
@@ -243,9 +239,7 @@
         </form>
         <button id="deleteLastImage" class="delete-button">Delete Last Image</button>
         <div id="gallery" class="gallery"></div>
-        <!-- Overlay for dimming the background -->
         <div id="overlay" class="overlay"></div>
-        <!-- Loading spinner -->
         <div id="spinner" class="spinner">
             <div class="dot"></div>
             <div class="dot"></div>
