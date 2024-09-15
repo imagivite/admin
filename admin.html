@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Page</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #ffffff;
+        }
+        .container {
+            width: 90%;
+            max-width: 900px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            text-align: center;
+            position: relative;
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            display: block;
+            margin: 0 auto 20px auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        button:focus {
+            outline: none;
+        }
+        .upload-button {
+            background-color: #007bff;
+            color: #fff;
+        }
+        .file-upload-container {
+    text-align: center;
+    margin: 20px;
+    position: relative;
+}
+
+input[type="file"] {
+    display: none; /* Hide the default file input */
+}
+
+.file-label {
+    display: inline-block;
+    background-color: #4caf50;
+    color: white;
+    padding: 12px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    font-family: 'New Amsterdam', sans-serif;
+}
+
+.file-label i {
+    margin-right: 8px;
+    transition: transform 0.3s ease;
+}
+
+.file-label:hover {
+    background-color: #45a049;
+    border-color: #4caf50;
+}
+
+.file-label:hover i {
+    transform: scale(1.1);
+}
+
+.file-label:active {
+    transform: scale(0.98);
+}
+
+.upload-button {
+    display: inline-block;
+    background-color: #008CBA;
+    color: white;
+    padding: 12px 20px;
+    font-size: 16px;
+    margin-top: 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.upload-button:hover {
+    background-color: #007bb5;
+}
+
+.upload-button:active {
+    transform: scale(0.98);
+}
+
+        .delete-button {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .gallery img {
+            width: 150px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s;
+        }
+        .gallery img:hover {
+            transform: scale(1.05);
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        .spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+        .spinner .dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin: 0 6px;
+            border-radius: 50%;
+            background-color: #007bff;
+            animation: dot-blink 1.5s infinite ease-in-out;
+        }
+        .spinner .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .spinner .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes dot-blink {
+            0%, 20%, 80%, 100% {
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+    </style>
+     <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/9.1.2/firebase-storage.js';
+        import { getDatabase, ref as dbRef, set, get, remove } from 'https://www.gstatic.com/firebasejs/9.1.2/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDkIC_zzwCd_A36mr6CuWYIV6e2Nj0_78",
+            authDomain: "temple-92c10.firebaseapp.com",
+            projectId: "temple-92c10",
+            storageBucket: "temple-92c10.appspot.com",
+            messagingSenderId: "897264749452",
+            appId: "1:897264749452:web:c68f0e305d9b73def164a9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const storage = getStorage(app);
+        const database = getDatabase(app);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('uploadForm');
+            const fileInput = document.getElementById('fileInput');
+            const gallery = document.getElementById('gallery');
+            const deleteButton = document.getElementById('deleteLastImage');
+            const deleteAllButton = document.getElementById('deleteAllImages');
+            const spinner = document.getElementById('spinner');
+            const overlay = document.getElementById('overlay');
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const files = fileInput.files;
+                if (files.length === 0) {
+                    alert('Please select at least one file.');
+                    return;
+                }
+
+                overlay.style.display = 'block';
+                spinner.style.display = 'block';
+
+                try {
+                    for (const file of files) {
+                        const storageRef = ref(storage, `images/${file.name}`);
+                        await uploadBytes(storageRef, file);
+                        const downloadURL = await getDownloadURL(storageRef);
+                        const imageRef = dbRef(database, 'images/' + Date.now());
+                        await set(imageRef, { url: downloadURL, name: file.name });
+                    }
+                    alert('Upload successful!');
+                    loadImages();
+                } catch (error) {
+                    console.error('Error uploading file:', error);
+                } finally {
+                    spinner.style.display = 'none';
+                    overlay.style.display = 'none';
+                }
+            });
+
+            async function loadImages() {
+                try {
+                    const imagesRef = dbRef(database, 'images');
+                    const snapshot = await get(imagesRef);
+
+                    if (snapshot.exists()) {
+                        const images = snapshot.val();
+                        gallery.innerHTML = '';
+
+                        for (const key in images) {
+                            const imgUrl = images[key].url;
+                            const img = document.createElement('img');
+                            img.src = imgUrl;
+                            gallery.appendChild(img);
+                        }
+                    } else {
+                        gallery.innerHTML = 'No images found.';
+                    }
+                } catch (error) {
+                    console.error('Error fetching images:', error);
+                }
+            }
+
+            deleteButton.addEventListener('click', async () => {
+                try {
+                    const imagesRef = dbRef(database, 'images');
+                    const snapshot = await get(imagesRef);
+
+                    if (snapshot.exists()) {
+                        const images = snapshot.val();
+                        const lastImageKey = Object.keys(images).pop();
+                        const lastImage = images[lastImageKey];
+                        const fileName = lastImage.name;
+
+                        if (!fileName) {
+                            throw new Error('File name is missing from the database.');
+                        }
+
+                        const decodedFileName = decodeURIComponent(fileName);
+                        const imageStorageRef = ref(storage, `images/${decodedFileName}`);
+
+                        await deleteObject(imageStorageRef);
+                        await remove(dbRef(database, 'images/' + lastImageKey));
+
+                        alert('Last image deleted successfully!');
+                        loadImages();
+                    } else {
+                        alert('No images to delete.');
+                    }
+                } catch (error) {
+                    console.error('Error deleting last image:', error);
+                    alert('An error occurred while deleting the last image.');
+                }
+            });
+
+            // Event listener for deleting all images
+            deleteAllButton.addEventListener('click', async () => {
+                try {
+                    const imagesRef = dbRef(database, 'images');
+                    const snapshot = await get(imagesRef);
+
+                    if (snapshot.exists()) {
+                        const images = snapshot.val();
+                        const promises = [];
+
+                        for (const key in images) {
+                            const image = images[key];
+                            const fileName = image.name;
+
+                            if (!fileName) {
+                                throw new Error('File name is missing from the database.');
+                            }
+
+                            const decodedFileName = decodeURIComponent(fileName);
+                            const imageStorageRef = ref(storage, `images/${decodedFileName}`);
+
+                            promises.push(deleteObject(imageStorageRef));
+                            promises.push(remove(dbRef(database, 'images/' + key)));
+                        }
+
+                        await Promise.all(promises);
+
+                        alert('All images deleted successfully!');
+                        loadImages();
+                    } else {
+                        alert('No images to delete.');
+                    }
+                } catch (error) {
+                    console.error('Error deleting all images:', error);
+                    alert('An error occurred while deleting all images.');
+                }
+            });
+
+            loadImages(); // Load images on page load
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Uploader</h1>
+        <form id="uploadForm">
+            <div class="file-upload-container">
+                <input type="file" id="fileInput" multiple />
+                <label for="fileInput" class="file-label">
+                    <i class="fas fa-upload"></i> Choose Files
+                </label>
+                <button type="submit" class="upload-button">Upload Images</button>
+            </div>
+            
+        </form>
+        <div>
+            <button id="deleteLastImage" class="delete-button">Delete Last Image</button>
+            <button id="deleteAllImages" class="delete-button">Delete All Images</button>
+        </div>
+        <div id="gallery" class="gallery"></div>
+    </div>
+    <div id="overlay" class="overlay"></div>
+    <div id="spinner" class="spinner">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+    </div>
+</body>
+</html>
