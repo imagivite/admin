@@ -109,37 +109,57 @@
 
     <script>
         const apiKey = "5ba49ac8-733d-11ef-8b17-0200cd936042"; // Replace with your actual 2Factor API key
-let sessionId;          
+        let sessionId;
 
-document.getElementById("requestOTP").addEventListener("click", () => {
-    const email = document.getElementById("email").value;
-    const mobile = document.getElementById("mobile").value;
-    const message = document.getElementById("message");
+        document.getElementById("requestOTP").addEventListener("click", () => {
+            const email = document.getElementById("email").value;
+            const message = document.getElementById("message");
 
-    if (!mobile || !email) {
-        message.textContent = "Please enter both email and mobile number.";
-        return;
-    }
-
-    // SMS 2Factor API to send OTP via SMS
-    fetch(`https://2factor.in/API/V1/${apiKey}/SMS/${mobile}/AUTOGEN?type=SMS`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.Status === "Success") {
-                alert("OTP sent to your mobile via SMS.");
-                sessionId = data.Details;  // Store session ID
-                document.getElementById("otpSection").classList.add("show");
-                message.textContent = "";
-            } else {
-                message.textContent = "Failed to send OTP. Please try again.";
+            if (!mobile || !email) {
+                message.textContent = "Please enter both email and mobile number.";
+                return;
             }
-        })
-        .catch(error => {
-            message.textContent = "Error sending OTP.";
-            console.error("Error:", error);
-        });
-});
 
+            // SMS 2Factor API to send OTP via SMS
+            let mobileNumber = document.getElementById("mobile").value
+            fetch(`https://2factor.in/API/V1/${apiKey}/SMS/${mobileNumber}/AUTOGEN?type=SMS`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.Status === "Success") {
+                        alert("OTP sent to your mobile via SMS.");
+                        sessionId = data.Details;  // Store session ID
+                        document.getElementById("otpSection").classList.add("show");
+                        message.textContent = "";
+                    } else {
+                        message.textContent = "Failed to send OTP. Please try again.";
+                    }
+                })
+                .catch(error => {
+                    message.textContent = "Error sending OTP.";
+                    console.error("Error:", error);
+                });
+        });
+
+        document.getElementById("verifyOTP").addEventListener("click", () => {
+            const otp = document.getElementById("otp").value;
+            const message = document.getElementById("message");
+
+            // Verify OTP via 2Factor
+            fetch(`https://2factor.in/API/V1/${apiKey}/SMS/VERIFY/${sessionId}/${otp}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.Status === "Success") {
+                        alert("OTP Verified! Redirecting...");
+                        window.location.href = "admin.html";  // Redirect to admin page
+                    } else {
+                        message.textContent = "Invalid OTP. Please try again.";
+                    }
+                })
+                .catch(error => {
+                    message.textContent = "Error verifying OTP.";
+                    console.error("Error:", error);
+                });
+        });
     </script>
 </body>
 </html>
